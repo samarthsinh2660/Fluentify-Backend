@@ -81,7 +81,8 @@ class CourseController {
             totalXp: course.total_xp || 0,
             lessonsCompleted: course.lessons_completed || 0,
             unitsCompleted: course.units_completed || 0,
-            currentStreak: course.current_streak || 0
+            currentStreak: course.current_streak || 0,
+            progressPercentage: course.progress_percentage || 0
           }
         };
       });
@@ -316,6 +317,13 @@ class CourseController {
         throw ERRORS.LESSON_NOT_FOUND;
       }
 
+      // Get lesson database ID from course_lessons table
+      const lessonDbId = await courseRepository.findLessonDbId(courseId, foundUnitId, lessonId);
+      
+      if (!lessonDbId) {
+        throw ERRORS.LESSON_NOT_FOUND;
+      }
+
       const xpEarned = foundLesson.xpReward || 50;
 
       // Check if lesson already completed
@@ -326,13 +334,13 @@ class CourseController {
       }
 
       // Mark lesson as complete
-      await progressRepository.upsertLessonProgress(userId, courseId, foundUnitId, lessonId, score, xpEarned);
+      await progressRepository.upsertLessonProgress(userId, courseId, foundUnitId, lessonDbId, score, xpEarned);
 
       // Save exercise attempts
       for (let i = 0; i < exercises.length; i++) {
         const exercise = exercises[i];
         await progressRepository.createExerciseAttempt(
-          userId, courseId, foundUnitId, lessonId, i, 
+          userId, courseId, foundUnitId, lessonDbId, i, 
           exercise.isCorrect || false, exercise.userAnswer || ''
         );
       }
@@ -359,21 +367,21 @@ class CourseController {
         unitCompleted = true;
       }
 
-      // Update user stats
+      // Update user stats (only streak tracking now)
       const today = new Date().toISOString().split('T')[0];
-      
+
       const stats = await progressRepository.findUserStats(userId, courseId);
 
       if (!stats) {
-        // Create new stats
-        await progressRepository.createUserStats(userId, courseId, xpEarned, unitCompleted ? 1 : 0, today);
+        // Create new stats (only for streak tracking)
+        await progressRepository.createUserStats(userId, courseId, 0, 0, today);
       } else {
-        // Update existing stats
+        // Update only streak information
         const lastDate = stats.last_activity_date ? new Date(stats.last_activity_date).toISOString().split('T')[0] : null;
         const yesterday = new Date();
         yesterday.setDate(yesterday.getDate() - 1);
         const yesterdayStr = yesterday.toISOString().split('T')[0];
-        
+
         let newStreak = 1;
         if (lastDate === yesterdayStr) {
           newStreak = stats.current_streak + 1;
@@ -381,7 +389,7 @@ class CourseController {
           newStreak = stats.current_streak;
         }
 
-        await progressRepository.updateUserStats(userId, courseId, xpEarned, unitCompleted ? 1 : 0, newStreak, today);
+        await progressRepository.updateUserStreak(userId, courseId, newStreak, today);
       }
 
       console.log(`✅ Lesson ${lessonId} completed! XP: ${xpEarned}, Unit completed: ${unitCompleted}`);

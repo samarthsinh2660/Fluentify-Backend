@@ -57,9 +57,9 @@ class ProgressRepository {
    */
   async upsertLessonProgress(userId, courseId, unitId, lessonId, score, xpEarned) {
     await db.query(
-      `INSERT INTO lesson_progress (learner_id, course_id, unit_id, lesson_number, is_completed, score, xp_earned, completed_time)
+      `INSERT INTO lesson_progress (learner_id, course_id, unit_id, lesson_id, is_completed, score, xp_earned, completed_time)
        VALUES ($1, $2, $3, $4, TRUE, $5, $6, NOW())
-       ON CONFLICT (learner_id, course_id, unit_id, lesson_number) 
+       ON CONFLICT (learner_id, lesson_id)
        DO UPDATE SET is_completed = TRUE, score = $5, xp_earned = $6, completed_time = NOW()`,
       [userId, courseId, unitId, lessonId, score, xpEarned]
     );
@@ -125,20 +125,17 @@ class ProgressRepository {
   }
 
   /**
-   * Update user stats
+   * Update user streak only
    */
-  async updateUserStats(userId, courseId, xpEarned, unitsCompleted, newStreak, today) {
+  async updateUserStreak(userId, courseId, newStreak, today) {
     await db.query(
-      `UPDATE user_stats SET 
-        total_xp = total_xp + $1,
-        lessons_completed = lessons_completed + 1,
-        units_completed = units_completed + $2,
-        current_streak = $3,
-        longest_streak = GREATEST(longest_streak, $3),
-        last_activity_date = $4,
+      `UPDATE user_stats SET
+        current_streak = $1,
+        longest_streak = GREATEST(longest_streak, $1),
+        last_activity_date = $2,
         updated_at = NOW()
-       WHERE learner_id = $5 AND course_id = $6`,
-      [xpEarned, unitsCompleted, newStreak, today, userId, courseId]
+       WHERE learner_id = $3 AND course_id = $4`,
+      [newStreak, today, userId, courseId]
     );
   }
 
