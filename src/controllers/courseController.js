@@ -137,7 +137,7 @@ class CourseController {
 
       const lessonProgressMap = {};
       lessonProgressResult.forEach(lp => {
-        const key = `${lp.unit_id}-${lp.lesson_number}`;
+        const key = `${lp.unit_id}-${lp.lesson_id}`;
         lessonProgressMap[key] = {
           isCompleted: lp.is_completed,
           score: lp.score,

@@ -52,7 +52,7 @@ const markLessonComplete = async (req, res, next) => {
   try {
     const userId = req.user.id;
     const { courseId, unitId, lessonId } = req.params;
-    const { score = 100, exercises = [] } = req.body;
+    const { score = 100, exercises = [] } = req.body || {};
 
     // Get course data to calculate XP
     const courseResult = await courseRepository.findCourseDataById(courseId, userId);
@@ -71,33 +71,40 @@ const markLessonComplete = async (req, res, next) => {
 
     const xpEarned = lesson.xpReward || 50;
 
+    // Get lesson database ID from course_lessons table
+    const lessonDbId = await courseRepository.findLessonDbId(courseId, parseInt(unitId), parseInt(lessonId));
+    
+    if (!lessonDbId) {
+      throw ERRORS.LESSON_NOT_FOUND;
+    }
+
     // Check if lesson already completed
-    const existingProgress = await progressRepository.findSpecificLessonProgress(userId, courseId, unitId, lessonId);
+    const existingProgress = await progressRepository.findSpecificLessonProgress(userId, courseId, parseInt(unitId), parseInt(lessonId));
 
     if (existingProgress && existingProgress.is_completed) {
       throw ERRORS.LESSON_ALREADY_COMPLETED;
     }
 
     // Mark lesson as complete
-    await progressRepository.upsertLessonProgress(userId, courseId, unitId, lessonId, score, xpEarned);
+    await progressRepository.upsertLessonProgress(userId, courseId, parseInt(unitId), lessonDbId, score, xpEarned);
 
     // Save exercise attempts
     for (let i = 0; i < exercises.length; i++) {
       const exercise = exercises[i];
       await progressRepository.createExerciseAttempt(
-        userId, courseId, unitId, lessonId, i, 
+        userId, courseId, parseInt(unitId), lessonDbId, i, 
         exercise.isCorrect, exercise.userAnswer
       );
     }
 
     // Check if all lessons in unit are completed
     const totalLessonsInUnit = unit.lessons.length;
-    const completedLessons = await progressRepository.countCompletedLessonsInUnit(userId, courseId, unitId);
+    const completedLessons = await progressRepository.countCompletedLessonsInUnit(userId, courseId, parseInt(unitId));
 
     let unitCompleted = false;
     if (completedLessons >= totalLessonsInUnit) {
       // Mark unit as complete
-      await progressRepository.markUnitComplete(userId, courseId, unitId);
+      await progressRepository.markUnitComplete(userId, courseId, parseInt(unitId));
 
       // Unlock next unit
       const nextUnitId = parseInt(unitId) + 1;
@@ -110,21 +117,20 @@ const markLessonComplete = async (req, res, next) => {
       unitCompleted = true;
     }
 
-    // Update user stats
+    // Update user stats (only streak tracking now)
     const today = new Date().toISOString().split('T')[0];
-    
     const stats = await progressRepository.findUserStats(userId, courseId);
 
     if (!stats) {
-      // Create new stats
-      await progressRepository.createUserStats(userId, courseId, xpEarned, unitCompleted ? 1 : 0, today);
+      // Create new stats (only for streak tracking)
+      await progressRepository.createUserStats(userId, courseId, 0, 0, today);
     } else {
-      // Update existing stats
-      const lastDate = stats.last_activity_date;
+      // Update only streak information
+      const lastDate = stats.last_activity_date ? new Date(stats.last_activity_date).toISOString().split('T')[0] : null;
       const yesterday = new Date();
       yesterday.setDate(yesterday.getDate() - 1);
       const yesterdayStr = yesterday.toISOString().split('T')[0];
-      
+
       let newStreak = 1;
       if (lastDate === yesterdayStr) {
         newStreak = stats.current_streak + 1;
@@ -132,7 +138,7 @@ const markLessonComplete = async (req, res, next) => {
         newStreak = stats.current_streak;
       }
 
-      await progressRepository.updateUserStats(userId, courseId, xpEarned, unitCompleted ? 1 : 0, newStreak, today);
+      await progressRepository.updateUserStreak(userId, courseId, newStreak, today);
     }
 
     res.json(successResponse({

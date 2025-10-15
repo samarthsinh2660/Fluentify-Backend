@@ -20,10 +20,12 @@ class ProgressRepository {
    */
   async findLessonProgress(userId, courseId) {
     const result = await db.query(
-      `SELECT unit_id, lesson_number, is_completed, score, xp_earned
-       FROM lesson_progress 
-       WHERE learner_id = $1 AND course_id = $2
-       ORDER BY unit_id, lesson_number`,
+      `SELECT cu.unit_id, cl.lesson_id, lp.is_completed, lp.score, lp.xp_earned
+       FROM lesson_progress lp
+       JOIN course_lessons cl ON lp.lesson_id = cl.id
+       JOIN course_units cu ON cl.unit_id = cu.id
+       WHERE lp.learner_id = $1 AND lp.course_id = $2
+       ORDER BY cu.unit_id, cl.lesson_id`,
       [userId, courseId]
     );
     return result.rows;
@@ -32,11 +34,14 @@ class ProgressRepository {
   /**
    * Get specific lesson progress
    */
-  async findSpecificLessonProgress(userId, courseId, unitId, lessonId) {
+  async findSpecificLessonProgress(userId, courseId, unitNumber, lessonNumber) {
     const result = await db.query(
-      `SELECT * FROM lesson_progress 
-       WHERE learner_id = $1 AND course_id = $2 AND unit_id = $3 AND lesson_number = $4`,
-      [userId, courseId, unitId, lessonId]
+      `SELECT lp.* 
+       FROM lesson_progress lp
+       JOIN course_lessons cl ON lp.lesson_id = cl.id
+       JOIN course_units cu ON cl.unit_id = cu.id
+       WHERE lp.learner_id = $1 AND lp.course_id = $2 AND cu.unit_id = $3 AND cl.lesson_id = $4`,
+      [userId, courseId, unitNumber, lessonNumber]
     );
     return result.rows[0] || null;
   }
@@ -79,10 +84,14 @@ class ProgressRepository {
   /**
    * Count completed lessons in a unit
    */
-  async countCompletedLessonsInUnit(userId, courseId, unitId) {
+  async countCompletedLessonsInUnit(userId, courseId, unitNumber) {
     const result = await db.query(
-      'SELECT COUNT(*) as total FROM lesson_progress WHERE learner_id = $1 AND course_id = $2 AND unit_id = $3 AND is_completed = TRUE',
-      [userId, courseId, unitId]
+      `SELECT COUNT(*) as total 
+       FROM lesson_progress lp
+       JOIN course_lessons cl ON lp.lesson_id = cl.id
+       JOIN course_units cu ON cl.unit_id = cu.id
+       WHERE lp.learner_id = $1 AND lp.course_id = $2 AND cu.unit_id = $3 AND lp.is_completed = TRUE`,
+      [userId, courseId, unitNumber]
     );
     return parseInt(result.rows[0].total);
   }
