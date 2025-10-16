@@ -62,10 +62,10 @@ class ProgressRepository {
    */
   async upsertLessonProgress(userId, courseId, unitId, lessonId, score, xpEarned) {
     await db.query(
-      `INSERT INTO lesson_progress (learner_id, course_id, unit_id, lesson_id, is_completed, score, xp_earned, completed_time)
+      `INSERT INTO lesson_progress (learner_id, course_id, unit_id, lesson_id, is_completed, score, xp_earned,completion_time)
        VALUES ($1, $2, $3, $4, TRUE, $5, $6, NOW())
        ON CONFLICT (learner_id, lesson_id)
-       DO UPDATE SET is_completed = TRUE, score = $5, xp_earned = $6, completed_time = NOW()`,
+       DO UPDATE SET is_completed = TRUE, score = $5, xp_earned = $6, completion_time = NOW()`,
       [userId, courseId, unitId, lessonId, score, xpEarned]
     );
   }

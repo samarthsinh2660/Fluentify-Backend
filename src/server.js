@@ -12,7 +12,13 @@ import { errorHandler, notFoundHandler } from './middlewares/errorMiddleware.js'
 const app = express();
 const port = process.env.PORT || 5000;
 
-app.use(cors());
+// Configure CORS
+app.use(cors({
+  origin: ['http://localhost:3000', 'http://127.0.0.1:3000','http://localhost:5174','http://localhost:5173'],
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+}));
 app.use(express.json());
 
 // Root check

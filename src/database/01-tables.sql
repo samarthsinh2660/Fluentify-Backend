@@ -1,8 +1,4 @@
--- PostgreSQL Database Schema for Fluentify
--- This file contains all necessary tables, indexes, functions, and triggers
--- Compatible with PostgreSQL 16+
 
--- Users and Authentication
 CREATE TABLE IF NOT EXISTS learners (
   id SERIAL PRIMARY KEY,
   name VARCHAR(100) NOT NULL,

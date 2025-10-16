@@ -74,7 +74,7 @@ class GeminiService {
     const prompt = `Generate a comprehensive, in-depth course outline for learning ${language} over ${expectedDuration}.
 
 This should be a professional, Duolingo-quality curriculum with clear learning objectives and progression.
-
+Do NOT include any explanations, markdown, or text outside of JSON.
 Respond with ONLY valid JSON in this exact format:
 {
   "units": [
