@@ -7,6 +7,7 @@ import authRoutes from "./routes/auth.js";
 import preferencesRoutes from './routes/preferences.js';
 import courseRoutes from './routes/courses.js';
 import progressRoutes from './routes/progress.js';
+import retellRoutes from './routes/retellRoutes.js';
 import { errorHandler, notFoundHandler } from './middlewares/errorMiddleware.js';
 
 const app = express();
@@ -67,6 +68,8 @@ app.use('/api/preferences', preferencesRoutes);
 app.use('/api/courses', courseRoutes);
 // Progress routes
 app.use('/api/progress', progressRoutes);
+// Retell AI routes
+app.use('/api/retell', retellRoutes);
 
 // 404 handler - must be after all routes
 app.use(notFoundHandler);
