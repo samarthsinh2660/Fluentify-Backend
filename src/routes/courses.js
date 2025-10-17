@@ -19,6 +19,9 @@ router.get('/', courseController.getLearnerCourses);
 // Get specific course details with progress
 router.get('/:courseId', courseController.getCourseDetails);
 
+// Delete a course and all related data
+router.delete('/:courseId', courseController.deleteCourse);
+
 // Get specific lesson details (with unit ID)
 router.get('/:courseId/units/:unitId/lessons/:lessonId', courseController.getLessonDetails);
 

@@ -16,13 +16,13 @@ class GeminiService {
    * @param {string} expectedDuration - Expected learning duration (e.g., '3 months', '6 months')
    * @returns {Promise<Object>} - Structured course data
    */
-  async generateCourse(language, expectedDuration) {
+  async generateCourse(language, expectedDuration, expertise = 'Beginner') {
     try {
-      console.log(`Generating course for: ${language}, Duration: ${expectedDuration}`);
+      console.log(`Generating course for: ${language}, Duration: ${expectedDuration}, Expertise: ${expertise}`);
       
       // Step 1: Generate course outline (units structure)
       console.log('Step 1: Generating course outline...');
-      const outline = await this.generateCourseOutline(language, expectedDuration);
+      const outline = await this.generateCourseOutline(language, expectedDuration, expertise);
       
       // Step 2: Generate each unit separately
       console.log(`Step 2: Generating ${outline.units.length} units...`);
@@ -31,7 +31,7 @@ class GeminiService {
       for (let i = 0; i < outline.units.length; i++) {
         const unitOutline = outline.units[i];
         console.log(`  Generating Unit ${i + 1}: ${unitOutline.title}...`);
-        const unit = await this.generateUnit(language, unitOutline, i + 1);
+        const unit = await this.generateUnit(language, unitOutline, i + 1, expertise);
         units.push(unit);
       }
       
@@ -70,10 +70,12 @@ class GeminiService {
   /**
    * Generate course outline with unit structure
    */
-  async generateCourseOutline(language, expectedDuration) {
+  async generateCourseOutline(language, expectedDuration, expertise = 'Beginner') {
     const prompt = `Generate a comprehensive, in-depth course outline for learning ${language} over ${expectedDuration}.
 
-This should be a professional, Duolingo-quality curriculum with clear learning objectives and progression.
+User's Current Level: ${expertise}
+
+This should be a professional, Duolingo-quality curriculum designed for someone who is currently at ${expertise} level. Start from their current knowledge level and build upon it.
 Do NOT include any explanations, markdown, or text outside of JSON.
 Respond with ONLY valid JSON in this exact format:
 {
@@ -91,7 +93,10 @@ Respond with ONLY valid JSON in this exact format:
 }
 
 Requirements:
-- Create 6 units with progressive difficulty: Beginner (Units 1-2), Elementary (Units 3-4), Intermediate (Units 5-6)
+- Create 6 units with progressive difficulty starting from ${expertise} level
+- If user is Beginner: Start with basics and progress to Elementary/Intermediate
+- If user is Intermediate: Start with review and advance to upper-Intermediate/Advanced concepts
+- If user is Advanced: Focus on mastery, nuanced expressions, and cultural depth
 - Each unit should have 6 lessons
 - Topics should be practical and relevant to real-world communication
 - Cover: vocabulary, grammar, conversation, pronunciation, and cultural context
@@ -114,8 +119,10 @@ Requirements:
   /**
    * Generate a single unit with all its lessons
    */
-  async generateUnit(language, unitOutline, unitNumber) {
+  async generateUnit(language, unitOutline, unitNumber, expertise = 'Beginner') {
     const prompt = `Generate detailed lessons for Unit ${unitNumber} of a ${language} course.
+
+User's Current Level: ${expertise}
 
 Unit Info:
 - Title: ${unitOutline.title}
@@ -123,6 +130,11 @@ Unit Info:
 - Difficulty: ${unitOutline.difficulty}
 - Topics: ${unitOutline.topics.join(', ')}
 - Number of lessons: ${unitOutline.lessonCount}
+
+The user is currently at ${expertise} level. Adjust vocabulary difficulty, grammar complexity, and exercise difficulty accordingly.
+- If Beginner: Use simple vocabulary, basic grammar structures, and clear explanations
+- If Intermediate: Use more complex vocabulary, intermediate grammar, assume basic knowledge
+- If Advanced: Use sophisticated vocabulary, advanced grammar, focus on nuance and mastery
 
 Respond with ONLY valid JSON in this exact format:
 {

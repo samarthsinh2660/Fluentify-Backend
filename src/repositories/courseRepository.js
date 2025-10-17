@@ -180,6 +180,33 @@ class CourseRepository {
   }
 
   /**
+   * Delete course and all related data (CASCADE)
+   */
+  async deleteCourse(courseId, userId) {
+    // Verify course belongs to user
+    const course = await db.query(
+      'SELECT * FROM courses WHERE id = $1 AND learner_id = $2',
+      [courseId, userId]
+    );
+
+    if (course.rows.length === 0) {
+      return false; // Course not found or doesn't belong to user
+    }
+
+    // Delete course (CASCADE will handle all related tables)
+    // The database foreign keys with ON DELETE CASCADE will automatically delete:
+    // - course_units
+    // - course_lessons
+    // - unit_progress
+    // - lesson_progress
+    // - exercise_attempts
+    // - user_stats
+    await db.query('DELETE FROM courses WHERE id = $1 AND learner_id = $2', [courseId, userId]);
+
+    return true;
+  }
+
+  /**
    * Find all active courses
    */
   async findAllActiveCourses(userId) {
