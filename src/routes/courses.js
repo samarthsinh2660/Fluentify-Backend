@@ -7,7 +7,10 @@ const router = express.Router();
 // All course routes require authentication
 router.use(authMiddleware);
 
-// Generate a new course
+// Generate a new course (streaming with SSE)
+router.get('/generate-stream', courseController.generateCourseStream);
+
+// Generate a new course (legacy - non-streaming)
 router.post('/generate', courseController.generateCourse);
 
 // Get learner's courses

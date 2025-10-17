@@ -40,6 +40,26 @@ class CourseRepository {
   }
 
   /**
+   * Update course data (for streaming generation)
+   */
+  async updateCourseData(courseId, courseData) {
+    const totalLessons = courseData.metadata?.totalLessons || 0;
+    const totalUnits = courseData.metadata?.totalUnits || 0;
+    const estimatedTotalTime = courseData.metadata?.estimatedTotalTime || 0;
+
+    await db.query(
+      `UPDATE courses 
+       SET course_data = $1, 
+           total_lessons = $2, 
+           total_units = $3, 
+           estimated_total_time = $4,
+           updated_at = NOW()
+       WHERE id = $5`,
+      [courseData, totalLessons, totalUnits, estimatedTotalTime, courseId]
+    );
+  }
+
+  /**
    * Populate course_units and course_lessons tables from courseData
    */
   async populateCourseStructure(courseId, courseData) {
