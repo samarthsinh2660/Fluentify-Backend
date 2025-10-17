@@ -2,7 +2,6 @@
   "watch": ["src"],
   "ext": "js,json,mjs",
   "ignore": ["node_modules", "*.test.js", "*.spec.js"],
-  "exec": "node src/server.js",
   "legacyWatch": true,
   "delay": 500,
   "verbose": true
