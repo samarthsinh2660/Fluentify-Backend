@@ -41,6 +41,8 @@ Error Code Convention:
 - 6xxxx: User preferences errors
 - 7xxxx: Unit management errors
 - 8xxxx: Retell AI / Voice call errors
+- 9xxxx: AI Chatbot errors
+- 10xxxx: Contest errors
 */
 
 const ERRORS = {
@@ -118,7 +120,38 @@ const ERRORS = {
   RETELL_API_ERROR: new RequestError("Retell AI service error", 80004, 502),
   RETELL_INVALID_AGENT: new RequestError("Invalid or inactive Retell AI agent", 80005, 400),
   RETELL_RATE_LIMIT: new RequestError("Retell AI rate limit exceeded. Please try again later.", 80006, 429),
-  RETELL_AUTHENTICATION_FAILED: new RequestError("Retell AI authentication failed", 80007, 401)
+  RETELL_AUTHENTICATION_FAILED: new RequestError("Retell AI authentication failed", 80007, 401),
+
+  // AI Chatbot Errors (9xxxx)
+  CHAT_SESSION_NOT_FOUND: new RequestError("Chat session not found", 90001, 404),
+  CHAT_SESSION_CREATION_FAILED: new RequestError("Failed to create chat session", 90002, 500),
+  CHAT_MESSAGE_REQUIRED: new RequestError("Message content is required", 90003, 400),
+  CHAT_MESSAGE_SEND_FAILED: new RequestError("Failed to send message", 90004, 500),
+  CHAT_AI_RESPONSE_FAILED: new RequestError("Failed to generate AI response", 90005, 500),
+  CHAT_HISTORY_FETCH_FAILED: new RequestError("Failed to fetch chat history", 90006, 500),
+  CHAT_SESSION_DELETE_FAILED: new RequestError("Failed to delete chat session", 90007, 500),
+  CHAT_SESSION_INACTIVE: new RequestError("Chat session is no longer active", 90008, 400),
+  CHAT_UNAUTHORIZED_ACCESS: new RequestError("You don't have access to this chat session", 90009, 403),
+  GEMINI_API_NOT_CONFIGURED: new RequestError("Gemini AI service is not configured. Please contact support.", 90010, 500),
+  CHAT_MESSAGE_TOO_LONG: new RequestError("Message is too long. Maximum 2000 characters allowed.", 90011, 400),
+
+  // Contest Errors (10xxxx)
+  CONTEST_NOT_FOUND: new RequestError("Contest not found", 100001, 404),
+  CONTEST_CREATION_FAILED: new RequestError("Failed to create contest", 100002, 500),
+  CONTEST_UPDATE_FAILED: new RequestError("Failed to update contest", 100003, 500),
+  CONTEST_DELETE_FAILED: new RequestError("Failed to delete contest", 100004, 500),
+  CONTEST_ALREADY_SUBMITTED: new RequestError("You have already submitted this contest", 100005, 409),
+  CONTEST_NOT_PUBLISHED: new RequestError("Contest is not published yet", 100006, 400),
+  CONTEST_ENDED: new RequestError("Contest has ended", 100007, 400),
+  CONTEST_NOT_STARTED: new RequestError("Contest has not started yet", 100008, 400),
+  INVALID_CONTEST_TYPE: new RequestError("Invalid contest type. Must be mcq, one-liner, or mix", 100009, 400),
+  INVALID_DIFFICULTY: new RequestError("Invalid difficulty level", 100010, 400),
+  CONTEST_GENERATION_FAILED: new RequestError("Failed to generate contest using AI", 100011, 500),
+  INVALID_ANSWERS_FORMAT: new RequestError("Invalid answers format", 100012, 400),
+  CONTEST_SUBMISSION_FAILED: new RequestError("Failed to submit contest", 100013, 500),
+  LEADERBOARD_FETCH_FAILED: new RequestError("Failed to fetch leaderboard", 100014, 500),
+  MAX_ATTEMPTS_REACHED: new RequestError("Maximum attempts for this contest reached", 100015, 400),
+  INVALID_QUESTION_FORMAT: new RequestError("Invalid question format", 100016, 400)
 };
 
 export {

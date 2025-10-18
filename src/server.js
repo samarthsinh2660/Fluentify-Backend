@@ -8,6 +8,8 @@ import preferencesRoutes from './routes/preferences.js';
 import courseRoutes from './routes/courses.js';
 import progressRoutes from './routes/progress.js';
 import retellRoutes from './routes/retellRoutes.js';
+import chatRoutes from './routes/chat.js';
+import contestRoutes from './routes/contests.js';
 import { errorHandler, notFoundHandler } from './middlewares/errorMiddleware.js';
 
 const app = express();
@@ -17,7 +19,7 @@ const port = process.env.PORT || 5000;
 app.use(cors({
   origin: ['http://localhost:3000', 'http://127.0.0.1:3000','http://localhost:5174','http://localhost:5173'],
   credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
 app.use(express.json());
@@ -70,6 +72,10 @@ app.use('/api/courses', courseRoutes);
 app.use('/api/progress', progressRoutes);
 // Retell AI routes
 app.use('/api/retell', retellRoutes);
+// Chat routes
+app.use('/api/chat', chatRoutes);
+// Contest routes
+app.use('/api/contests', contestRoutes);
 
 // 404 handler - must be after all routes
 app.use(notFoundHandler);

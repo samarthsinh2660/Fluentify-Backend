@@ -23,4 +23,21 @@ function authMiddleware(req, res, next) {
   });
 }
 
+/**
+ * Middleware to check if authenticated user is an admin
+ * Must be used AFTER authMiddleware
+ */
+function adminMiddleware(req, res, next) {
+  if (!req.user) {
+    return next(ERRORS.UNAUTHORIZED);
+  }
+
+  if (req.user.role !== 'admin') {
+    return next(ERRORS.ADMIN_ONLY_ROUTE);
+  }
+
+  next();
+}
+
 export default authMiddleware;
+export { adminMiddleware };
