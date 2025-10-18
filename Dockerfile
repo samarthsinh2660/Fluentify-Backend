@@ -14,7 +14,7 @@ RUN npm install
 COPY . .
 
 # Expose application port
-EXPOSE 5000
+EXPOSE $PORT
 
 # Start the application with nodemon for hot-reload
 CMD ["npm", "run", "dev"]
