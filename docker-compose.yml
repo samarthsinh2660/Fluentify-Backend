@@ -30,7 +30,7 @@ services:
       postgres:
         condition: service_healthy
     ports:
-      - "5000:5000"
+      - "${PORT:-5000}:${PORT:-5000}"  # Dynamic port with default
     environment:
       - CHOKIDAR_USEPOLLING=true
       - DATABASE_URL=${DATABASE_URL}
