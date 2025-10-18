@@ -3,23 +3,30 @@ import { Pool } from "pg";
 
 export const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
-  ssl: process.env.DATABASE_URL?.includes('supabase.co') ? { rejectUnauthorized: false } : false,
+  ssl:
+    process.env.NODE_ENV === "deveployment"
+      ? { rejectUnauthorized: false }
+      : false,
   max: 20,
   idleTimeoutMillis: 30000,
   connectionTimeoutMillis: 2000,
 });
 
-pool.on('error', (err) => {
-  console.error('❌ Database error:', err.message);
+pool.on("error", (err) => {
+  console.error("❌ Database error:", err.message);
 });
 
 export const connectToDatabase = async (retries = 5, delay = 2000) => {
   while (retries > 0) {
     try {
       const client = await pool.connect();
-      await client.query('SELECT 1');
+      await client.query("SELECT 1");
       client.release();
-      console.log(`✅ PostgreSQL connected successfully in ${process.env.NODE_ENV || 'development'}`);
+      console.log(
+        `✅ PostgreSQL connected successfully in ${
+          process.env.NODE_ENV || "development"
+        }`
+      );
       return;
     } catch (error) {
       retries--;
@@ -30,8 +37,10 @@ export const connectToDatabase = async (retries = 5, delay = 2000) => {
       }
     }
   }
-  
-  console.error("❌ Could not connect to PostgreSQL after multiple attempts. Exiting...");
+
+  console.error(
+    "❌ Could not connect to PostgreSQL after multiple attempts. Exiting..."
+  );
   process.exit(1);
 };
 
