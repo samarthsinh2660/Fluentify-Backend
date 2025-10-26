@@ -1,15 +1,16 @@
 import "dotenv/config";
 import { Pool } from "pg";
 
+// Supabase PostgreSQL connection configuration
 export const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
-  ssl:
-    process.env.NODE_ENV === "deveployment"
-      ? { rejectUnauthorized: false }
-      : false,
+  ssl: {
+    require: true,
+    rejectUnauthorized: false,
+  },
   max: 20,
   idleTimeoutMillis: 30000,
-  connectionTimeoutMillis: 2000,
+  connectionTimeoutMillis: 30000, // Increased to 30 seconds for Supabase reliability
 });
 
 pool.on("error", (err) => {
@@ -29,6 +30,9 @@ export const connectToDatabase = async (retries = 5, delay = 2000) => {
       );
       return;
     } catch (error) {
+      console.error(`❌ Database connection error:`, error.message);
+      console.error(`❌ Error code:`, error.code);
+      console.error(`❌ Error details:`, error);
       retries--;
       console.warn(`⚠️ PostgreSQL connection failed. Retries left: ${retries}`);
       if (retries > 0) {
