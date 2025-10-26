@@ -28,7 +28,8 @@ app.use(cors({
     if (corsOrigins.includes(origin)) {
       return callback(null, true);
     } else {
-      return callback(new Error('Not allowed by CORS'));
+      // Return false instead of throwing error for proper CORS handling
+      return callback(null, false);
     }
   },
   credentials: true,
