@@ -167,7 +167,7 @@ Respond with ONLY valid JSON in this exact format:
       ],
       "exercises": [
         {
-          "type": "multiple_choice|translation|matching|listening",
+          "type": "multiple_choice",
           "question": "exercise question",
           "options": ["option 1", "option 2", "option 3", "option 4"],
           "correctAnswer": 0
@@ -183,12 +183,14 @@ IMPORTANT:
 - Create exactly ${unitOutline.lessonCount} lessons
 - Each vocabulary lesson MUST have 5-8 vocabulary items with detailed examples
 - Each grammar lesson MUST have 2-4 comprehensive grammar points with multiple examples
-- Include 3-5 varied exercises per lesson (mix of multiple_choice, translation, matching, listening)
+- Include 3-5 multiple choice questions (MCQ) per lesson - ALL exercises MUST be type "multiple_choice" only
+- Each MCQ should have 4 options with clear, distinct answers
 - Exercises should test understanding, not just memorization
 - Include practical, real-world examples in all content
 - Last lesson MUST be type "review" covering all unit topics
 - Ensure all JSON arrays and objects are properly closed
-- Make content engaging and progressively challenging`;
+- Make content engaging and progressively challenging
+- CRITICAL: Do NOT generate translation, matching, or listening exercises - ONLY multiple_choice type`;
 
     const result = await this.model.generateContent({
       contents: [{ role: 'user', parts: [{ text: prompt }] }],
@@ -286,19 +288,15 @@ IMPORTANT:
    */
   async generateExercises(lessonTitle, lessonType, language) {
     try {
-      const prompt = `Generate 5 additional exercises for a ${lessonType} lesson titled "${lessonTitle}" in ${language}. 
+      const prompt = `Generate 5 additional multiple choice question (MCQ) exercises for a ${lessonType} lesson titled "${lessonTitle}" in ${language}. 
 
-The exercises should be a mix of:
-- Multiple choice questions
-- Translation exercises
-- Matching exercises
-- Fill-in-the-blank exercises
+IMPORTANT: All exercises MUST be multiple choice questions only with 4 options each.
 
 Provide the response in this JSON format:
 {
   "exercises": [
     {
-      "type": "multiple_choice|translation|matching|fill_blank",
+      "type": "multiple_choice",
       "question": "Exercise question",
       "options": ["option 1", "option 2", "option 3", "option 4"],
       "correctAnswer": 0,
@@ -366,7 +364,7 @@ CRITICAL: Respond with ONLY valid JSON. Keep it concise. Each lesson should have
             ],
             "exercises": [
               {
-                "type": "multiple_choice|translation|matching|listening",
+                "type": "multiple_choice",
                 "question": "exercise question",
                 "options": ["option 1", "option 2", "option 3", "option 4"],
                 "correctAnswer": 0

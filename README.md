@@ -101,6 +101,14 @@ Tables are automatically created on first startup from `src/database/01-tables.s
 - `GET /api/progress/courses/:courseId` - Get course progress
 - `POST /api/progress/courses/:courseId/units/:unitId/lessons/:lessonId/complete` - Mark lesson complete
 
+### User Management (Admin Only)
+- `GET /api/admin/users/learners` - Get all learners (with pagination & search)
+- `GET /api/admin/users/learners/:learnerId` - Get learner details with stats
+- `PUT /api/admin/users/learners/:learnerId` - Update learner (name, email)
+- `PUT /api/admin/users/learners/:learnerId/password` - Reset learner password
+- `DELETE /api/admin/users/learners/:learnerId` - Delete learner account
+- `GET /api/admin/users/learners/:learnerId/courses` - Get learner's courses
+
 ## 🧪 Testing
 
 ### Test Gemini AI Integration
@@ -131,11 +139,11 @@ SELECT * FROM learners;  # Query data
 Backend/
 ├── src/
 │   ├── config/           # Database configuration
-│   ├── controllers/      # Request handlers
+│   ├── controllers/      # Request handlers (auth, courses, progress, userManagement)
 │   ├── database/         # SQL schema files
-│   ├── middlewares/      # Express middlewares
-│   ├── repositories/     # Data access layer
-│   ├── routes/           # API routes
+│   ├── middlewares/      # Express middlewares (auth, error handling)
+│   ├── repositories/     # Data access layer (data queries)
+│   ├── routes/           # API routes (auth, courses, admin)
 │   ├── services/         # Business logic (Gemini AI)
 │   ├── utils/            # Utilities (JWT, errors, responses)
 │   └── server.js         # Main application file
@@ -161,6 +169,8 @@ Backend/
 - 📊 Progress tracking with XP and streaks
 - 🎯 Unit and lesson management
 - 📈 User statistics and achievements
+- 👥 Admin user management with CRUD operations
+- 🔔 Toast notification system for better UX
 - 🔄 Hot-reload development environment
 
 ## 🐛 Troubleshooting

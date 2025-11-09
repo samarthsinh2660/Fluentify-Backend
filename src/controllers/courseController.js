@@ -25,11 +25,22 @@ class CourseController {
       // Allow multiple courses for same language with different duration/expertise
       // Users can create multiple courses!
 
-      // Set up SSE headers
+      // Set up SSE headers with extended timeout
       res.setHeader('Content-Type', 'text/event-stream');
       res.setHeader('Cache-Control', 'no-cache');
       res.setHeader('Connection', 'keep-alive');
+      res.setHeader('X-Accel-Buffering', 'no'); // Disable nginx buffering
+      
+      // Set socket timeout to 15 minutes for long generation
+      req.socket.setTimeout(900000); // 15 minutes
+      res.socket.setTimeout(900000); // 15 minutes
+      
       res.flushHeaders();
+
+      // Send heartbeat every 30 seconds to keep connection alive
+      const heartbeatInterval = setInterval(() => {
+        res.write(': heartbeat\n\n');
+      }, 30000);
 
       // Helper function to send SSE events
       const sendEvent = (event, data) => {
@@ -134,10 +145,22 @@ class CourseController {
       });
 
       console.log(`🎉 Course ${courseId} generation complete!`);
+      
+      // Clear heartbeat interval
+      if (heartbeatInterval) {
+        clearInterval(heartbeatInterval);
+      }
+      
       res.end();
 
     } catch (error) {
       console.error('Error in streaming course generation:', error);
+      
+      // Clear heartbeat interval on error
+      if (typeof heartbeatInterval !== 'undefined') {
+        clearInterval(heartbeatInterval);
+      }
+      
       // Send error event
       res.write(`event: error\n`);
       res.write(`data: ${JSON.stringify({ message: error.message })}\n\n`);

@@ -10,10 +10,14 @@ import progressRoutes from './routes/progress.js';
 import retellRoutes from './routes/retellRoutes.js';
 import chatRoutes from './routes/chat.js';
 import contestRoutes from './routes/contests.js';
+import userManagementRoutes from './routes/userManagement.js';
 import { errorHandler, notFoundHandler } from './middlewares/errorMiddleware.js';
 
 const app = express();
 const port = process.env.PORT || 5000;
+
+// Configure server timeouts for long-running SSE connections
+app.set('timeout', 900000); // 15 minutes timeout
 
 // Configure CORS
 const corsOrigins = process.env.CORS_ORIGIN
@@ -90,6 +94,8 @@ app.use('/api/retell', retellRoutes);
 app.use('/api/chat', chatRoutes);
 // Contest routes
 app.use('/api/contests', contestRoutes);
+// User management routes (admin only)
+app.use('/api/admin/users', userManagementRoutes);
 
 // 404 handler - must be after all routes
 app.use(notFoundHandler);

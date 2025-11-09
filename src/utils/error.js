@@ -43,6 +43,7 @@ Error Code Convention:
 - 8xxxx: Retell AI / Voice call errors
 - 9xxxx: AI Chatbot errors
 - 10xxxx: Contest errors
+- 11xxxx: User management errors (Admin)
 */
 
 const ERRORS = {
@@ -151,7 +152,14 @@ const ERRORS = {
   CONTEST_SUBMISSION_FAILED: new RequestError("Failed to submit contest", 100013, 500),
   LEADERBOARD_FETCH_FAILED: new RequestError("Failed to fetch leaderboard", 100014, 500),
   MAX_ATTEMPTS_REACHED: new RequestError("Maximum attempts for this contest reached", 100015, 400),
-  INVALID_QUESTION_FORMAT: new RequestError("Invalid question format", 100016, 400)
+  INVALID_QUESTION_FORMAT: new RequestError("Invalid question format", 100016, 400),
+
+  // User Management Errors (11xxxx) - Admin operations
+  USER_MANAGEMENT_FETCH_FAILED: new RequestError("Failed to fetch user list", 110001, 500),
+  USER_UPDATE_FAILED: new RequestError("Failed to update user", 110002, 500),
+  USER_DELETE_FAILED: new RequestError("Failed to delete user", 110003, 500),
+  PASSWORD_UPDATE_FAILED: new RequestError("Failed to update password", 110004, 500),
+  USER_COURSES_FETCH_FAILED: new RequestError("Failed to fetch user courses", 110005, 500)
 };
 
 export {
