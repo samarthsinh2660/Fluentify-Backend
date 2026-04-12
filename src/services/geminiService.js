@@ -7,7 +7,7 @@ class GeminiService {
     }
     this.genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
     // Use gemini-pro which is the stable model for v1beta API
-    this.model = this.genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
+    this.model = this.genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
   }
 
   /**
@@ -105,14 +105,15 @@ Requirements:
     const result = await this.model.generateContent({
       contents: [{ role: 'user', parts: [{ text: prompt }] }],
       generationConfig: {
-        maxOutputTokens: 2048,
+        maxOutputTokens: 4096,
         temperature: 0.7,
+        responseMimeType: 'application/json',
       },
     });
-    
+
     const response = await result.response;
     const text = response.text();
-    
+
     return this.parseJSON(text);
   }
 
@@ -195,14 +196,15 @@ IMPORTANT:
     const result = await this.model.generateContent({
       contents: [{ role: 'user', parts: [{ text: prompt }] }],
       generationConfig: {
-        maxOutputTokens: 8192,
+        maxOutputTokens: 16384,
         temperature: 0.7,
+        responseMimeType: 'application/json',
       },
     });
-    
+
     const response = await result.response;
     const text = response.text();
-    
+
     return this.parseJSON(text);
   }
 
@@ -212,73 +214,38 @@ IMPORTANT:
   parseJSON(text) {
     try {
       console.log('Response length:', text.length, 'characters');
-      
-      // Clean the response text
+
       let cleanText = text.trim();
-      
-      // Remove markdown code blocks if present
-      cleanText = cleanText.replace(/```json\n?/g, '').replace(/```/g, '').trim();
-      
-      // Try to extract JSON from the response
-      let jsonMatch = cleanText.match(/\{[\s\S]*\}/);
-      
-      if (!jsonMatch) {
-        const startIdx = cleanText.indexOf('{');
-        const endIdx = cleanText.lastIndexOf('}');
-        
-        if (startIdx !== -1 && endIdx !== -1 && endIdx > startIdx) {
-          jsonMatch = [cleanText.substring(startIdx, endIdx + 1)];
-        }
-      }
-      
-      if (!jsonMatch) {
+
+      // Fast path: responseMimeType='application/json' returns clean JSON directly
+      try {
+        return JSON.parse(cleanText);
+      } catch (_) { /* not clean JSON — fall through to extraction */ }
+
+      // Strip markdown code fences if present
+      cleanText = cleanText.replace(/```json\s*/g, '').replace(/```/g, '').trim();
+
+      // Try direct parse after stripping fences
+      try {
+        return JSON.parse(cleanText);
+      } catch (_) { /* still not clean — extract the JSON object */ }
+
+      // Extract outermost {...} block
+      const startIdx = cleanText.indexOf('{');
+      const endIdx = cleanText.lastIndexOf('}');
+      if (startIdx === -1 || endIdx === -1 || endIdx <= startIdx) {
         throw new Error('No valid JSON found in AI response');
       }
 
-      let data;
-      try {
-        data = JSON.parse(jsonMatch[0]);
-      } catch (parseError) {
-        console.error('JSON parse error:', parseError.message);
-        
-        // Try to fix common JSON issues
-        let fixedJson = jsonMatch[0]
-          .replace(/,\s*([}\]])/g, '$1') // Remove trailing commas
-          .replace(/"\s*\n\s*"/g, '" "') // Fix line breaks in strings
-          .replace(/([^\\])\n/g, '$1 '); // Remove unescaped newlines
-        
-        // If still fails, try to truncate at last valid closing brace
-        try {
-          data = JSON.parse(fixedJson);
-        } catch (secondError) {
-          console.error('Second parse attempt failed, trying to auto-close JSON');
-          
-          // Find the position of the error and try to close JSON properly
-          const errorPos = parseInt(secondError.message.match(/position (\d+)/)?.[1] || '0');
-          if (errorPos > 0) {
-            let truncated = fixedJson.substring(0, errorPos);
-            // Count open braces/brackets and close them
-            const openBraces = (truncated.match(/\{/g) || []).length;
-            const closeBraces = (truncated.match(/\}/g) || []).length;
-            const openBrackets = (truncated.match(/\[/g) || []).length;
-            const closeBrackets = (truncated.match(/\]/g) || []).length;
-            
-            // Add missing closing characters
-            for (let i = 0; i < (openBrackets - closeBrackets); i++) truncated += ']';
-            for (let i = 0; i < (openBraces - closeBraces); i++) truncated += '}';
-            
-            console.log('Attempting to parse auto-closed JSON');
-            data = JSON.parse(truncated);
-          } else {
-            throw secondError;
-          }
-        }
-      }
-      
-      return data;
+      let candidate = cleanText.substring(startIdx, endIdx + 1);
+
+      // Fix common Gemini issues: trailing commas
+      candidate = candidate.replace(/,\s*([}\]])/g, '$1');
+
+      return JSON.parse(candidate);
     } catch (error) {
       console.error('Error parsing JSON:', error);
-      console.error('Raw response:', text.substring(0, 500));
+      console.error('Raw response (first 500 chars):', text.substring(0, 500));
       throw new Error(`Failed to parse JSON: ${error.message}`);
     }
   }

@@ -111,6 +111,21 @@ class CourseRepository {
   }
 
   /**
+   * Resolve a lesson DB id (course_lessons.id PK) back to logical unit + lesson numbers.
+   */
+  async findLessonNumbers(lessonDbId) {
+    const result = await db.query(
+      `SELECT cu.unit_id AS unit_number, cl.lesson_id AS lesson_number, cl.course_id
+       FROM course_lessons cl
+       JOIN course_units cu ON cl.unit_id = cu.id
+       WHERE cl.id = $1
+       LIMIT 1`,
+      [lessonDbId]
+    );
+    return result.rows[0] || null;
+  }
+
+  /**
    * Find lesson database ID by course, unit number, and lesson number
    */
   async findLessonDbId(courseId, unitNumber, lessonNumber) {
@@ -121,6 +136,17 @@ class CourseRepository {
        WHERE cl.course_id = $1 AND cu.unit_id = $2 AND cl.lesson_id = $3
        LIMIT 1`,
       [courseId, unitNumber, lessonNumber]
+    );
+    return result.rows[0]?.id || null;
+  }
+
+  /**
+   * Find unit database ID by course and logical unit number (unit_id column)
+   */
+  async findUnitDbId(courseId, unitNumber) {
+    const result = await db.query(
+      `SELECT id FROM course_units WHERE course_id = $1 AND unit_id = $2 LIMIT 1`,
+      [courseId, unitNumber]
     );
     return result.rows[0]?.id || null;
   }

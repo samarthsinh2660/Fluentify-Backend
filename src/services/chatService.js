@@ -1,6 +1,7 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import courseRepository from '../repositories/courseRepository.js';
 import progressRepository from '../repositories/progressRepository.js';
+import knowledgeGraphRepository from '../repositories/knowledgeGraphRepository.js';
 
 class ChatService {
   constructor() {
@@ -10,7 +11,7 @@ class ChatService {
       this.model = null;
     } else {
       this.genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-      this.model = this.genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
+      this.model = this.genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
     }
   }
 
@@ -82,6 +83,23 @@ Core Guidelines:
       }
       if (learnerContext.recentTopics && learnerContext.recentTopics.length > 0) {
         prompt += `\n- Recent topics covered: ${learnerContext.recentTopics.join(', ')}`;
+      }
+      if (learnerContext.masteryProfile) {
+        const mp = learnerContext.masteryProfile;
+        prompt += `\n- Overall mastery: ${Math.round(mp.overall * 100)}%`;
+        if (mp.weakTypes?.length > 0) {
+          prompt += `\n- Weak areas needing attention: ${mp.weakTypes.join(', ')}`;
+        }
+        if (mp.strongTypes?.length > 0) {
+          prompt += `\n- Strong areas: ${mp.strongTypes.join(', ')}`;
+        }
+      }
+      if (learnerContext.astarRecommendations?.length > 0) {
+        prompt += `\n\nPersonalised A* learning path (top priorities right now):`;
+        learnerContext.astarRecommendations.forEach((rec, i) => {
+          prompt += `\n  ${i + 1}. [${rec.urgency?.toUpperCase()}] "${rec.conceptLabel}" (${rec.conceptType}) — ${rec.reason}`;
+        });
+        prompt += `\n\nWhen the learner asks what to study or for help with these topics, proactively tie your answer back to these recommended concepts. If they ask about something else, briefly mention that the above concepts are their highest-priority areas.`;
       }
     }
 
@@ -165,13 +183,31 @@ Keep responses concise and focused. If the learner asks about something unrelate
 
           // Get recent lesson progress
           const recentLessons = await progressRepository.getRecentLessons(learnerId, activeCourse.id, 5);
-          
+
           if (recentLessons && recentLessons.length > 0) {
             context.currentLesson = recentLessons[0].title;
             context.recentTopics = recentLessons
               .map(lesson => lesson.title)
               .filter((title, index, self) => self.indexOf(title) === index)
               .slice(0, 3);
+          }
+
+          // Inject latest A* recommendations for richer AI guidance
+          try {
+            const latestRec = await knowledgeGraphRepository.findLatestRecommendation(learnerId, activeCourse.id);
+            if (latestRec) {
+              // full_path_data stores the complete A* result object (JSONB)
+              const fullResult = typeof latestRec.full_path_data === 'string'
+                ? JSON.parse(latestRec.full_path_data)
+                : latestRec.full_path_data;
+
+              if (fullResult?.recommendations?.length > 0) {
+                context.astarRecommendations = fullResult.recommendations.slice(0, 3);
+                context.masteryProfile       = fullResult.masteryProfile || null;
+              }
+            }
+          } catch (_) {
+            // A* context is optional — never block chat if it fails
           }
         }
       }

@@ -1,5 +1,7 @@
 import courseRepository from '../repositories/courseRepository.js';
 import progressRepository from '../repositories/progressRepository.js';
+import knowledgeGraphRepository from '../repositories/knowledgeGraphRepository.js';
+import { computeConceptMastery } from '../utils/masteryUtils.js';
 import { successResponse, listResponse } from '../utils/response.js';
 import { ERRORS } from '../utils/error.js';
 
@@ -71,11 +73,18 @@ const markLessonComplete = async (req, res, next) => {
 
     const xpEarned = lesson.xpReward || 50;
 
-    // Get lesson database ID from course_lessons table
-    const lessonDbId = await courseRepository.findLessonDbId(courseId, parseInt(unitId), parseInt(lessonId));
-    
+    // Resolve both the lesson DB id and the unit DB id (serial PKs, not logical numbers)
+    const [lessonDbId, unitDbId] = await Promise.all([
+      courseRepository.findLessonDbId(courseId, parseInt(unitId), parseInt(lessonId)),
+      courseRepository.findUnitDbId(courseId, parseInt(unitId)),
+    ]);
+
     if (!lessonDbId) {
       throw ERRORS.LESSON_NOT_FOUND;
+    }
+
+    if (!unitDbId) {
+      throw ERRORS.COURSE_NOT_FOUND;
     }
 
     // Check if lesson already completed
@@ -85,17 +94,31 @@ const markLessonComplete = async (req, res, next) => {
       throw ERRORS.LESSON_ALREADY_COMPLETED;
     }
 
-    // Mark lesson as complete
-    await progressRepository.upsertLessonProgress(userId, courseId, parseInt(unitId), lessonDbId, score, xpEarned);
+    // Mark lesson as complete (unitDbId = FK reference to course_units.id)
+    await progressRepository.upsertLessonProgress(userId, courseId, unitDbId, lessonDbId, score, xpEarned);
 
     // Save exercise attempts
     for (let i = 0; i < exercises.length; i++) {
       const exercise = exercises[i];
       await progressRepository.createExerciseAttempt(
-        userId, courseId, parseInt(unitId), lessonDbId, i, 
+        userId, courseId, unitDbId, lessonDbId, i,
         exercise.isCorrect, exercise.userAnswer
       );
     }
+
+    // Update concept mastery for all concepts linked to this lesson (fire-and-forget)
+    knowledgeGraphRepository.findConceptNodesByLesson(lessonDbId)
+      .then(async (lessonConcepts) => {
+        for (const concept of lessonConcepts) {
+          const masteryScore = computeConceptMastery(score, exercises, concept.concept_type);
+          await knowledgeGraphRepository.upsertConceptMastery(
+            userId, parseInt(courseId), concept.id, masteryScore,
+            exercises.length,
+            exercises.filter(e => e.isCorrect).length
+          );
+        }
+      })
+      .catch(err => console.error('Concept mastery update failed silently:', err.message));
 
     // Check if all lessons in unit are completed
     const totalLessonsInUnit = unit.lessons.length;
@@ -103,15 +126,18 @@ const markLessonComplete = async (req, res, next) => {
 
     let unitCompleted = false;
     if (completedLessons >= totalLessonsInUnit) {
-      // Mark unit as complete
-      await progressRepository.markUnitComplete(userId, courseId, parseInt(unitId));
+      // Mark unit complete using DB id
+      await progressRepository.markUnitComplete(userId, courseId, unitDbId);
 
-      // Unlock next unit
-      const nextUnitId = parseInt(unitId) + 1;
-      const nextUnit = courseData.course.units.find(u => u.id === nextUnitId);
-      
+      // Unlock next unit — look up its DB id too
+      const nextUnitNumber = parseInt(unitId) + 1;
+      const nextUnit = courseData.course.units.find(u => u.id === nextUnitNumber);
+
       if (nextUnit) {
-        await progressRepository.unlockUnit(userId, courseId, nextUnitId);
+        const nextUnitDbId = await courseRepository.findUnitDbId(courseId, nextUnitNumber);
+        if (nextUnitDbId) {
+          await progressRepository.unlockUnit(userId, courseId, nextUnitDbId);
+        }
       }
 
       unitCompleted = true;
@@ -192,9 +218,50 @@ const initializeCourseProgress = async (courseId, userId) => {
   }
 };
 
+/**
+ * Retry a completed lesson — update concept mastery only.
+ * No XP re-award, no completion status change.
+ * Called when the user re-takes the quiz on an already-completed lesson.
+ */
+const retryLesson = async (req, res, next) => {
+  try {
+    const userId = req.user.id;
+    const { courseId, unitId, lessonId } = req.params;
+    const { score = 100, exercises = [] } = req.body || {};
+
+    const lessonDbId = await courseRepository.findLessonDbId(
+      courseId, parseInt(unitId), parseInt(lessonId)
+    );
+
+    if (!lessonDbId) {
+      throw ERRORS.LESSON_NOT_FOUND;
+    }
+
+    // Update concept mastery for all concepts linked to this lesson
+    const lessonConcepts = await knowledgeGraphRepository.findConceptNodesByLesson(lessonDbId);
+    for (const concept of lessonConcepts) {
+      const masteryScore = computeConceptMastery(score, exercises, concept.concept_type);
+      await knowledgeGraphRepository.upsertConceptMastery(
+        userId, parseInt(courseId), concept.id, masteryScore,
+        exercises.length,
+        exercises.filter(e => e.isCorrect).length
+      );
+    }
+
+    res.json(successResponse({
+      score,
+      conceptsUpdated: lessonConcepts.length,
+    }, 'Mastery updated successfully'));
+  } catch (error) {
+    console.error('Error retrying lesson:', error);
+    next(error);
+  }
+};
+
 export {
   getCourseProgress,
   markLessonComplete,
+  retryLesson,
   getUserCourses,
   initializeCourseProgress
 };

@@ -11,6 +11,7 @@ import retellRoutes from './routes/retellRoutes.js';
 import chatRoutes from './routes/chat.js';
 import contestRoutes from './routes/contests.js';
 import userManagementRoutes from './routes/userManagement.js';
+import recommendationRoutes from './routes/recommendations.js';
 import { errorHandler, notFoundHandler } from './middlewares/errorMiddleware.js';
 
 const app = express();
@@ -96,6 +97,8 @@ app.use('/api/chat', chatRoutes);
 app.use('/api/contests', contestRoutes);
 // User management routes (admin only)
 app.use('/api/admin/users', userManagementRoutes);
+// Recommendation + knowledge graph routes
+app.use('/api/recommendations', recommendationRoutes);
 
 // 404 handler - must be after all routes
 app.use(notFoundHandler);

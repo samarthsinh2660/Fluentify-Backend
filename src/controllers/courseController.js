@@ -1,8 +1,19 @@
 import geminiService from '../services/geminiService.js';
+import conceptExtractionService from '../services/conceptExtractionService.js';
 import courseRepository from '../repositories/courseRepository.js';
 import progressRepository from '../repositories/progressRepository.js';
 import { successResponse, createdResponse, listResponse } from '../utils/response.js';
 import { ERRORS } from '../utils/error.js';
+
+// Normalize a raw Gemini lesson object to snake_case field names
+// so the frontend always gets consistent keys regardless of how Gemini named them.
+const normalizeLesson = (lesson) => ({
+  ...lesson,
+  grammar_points: lesson.grammar_points || lesson.grammarPoints || [],
+  key_phrases:    lesson.key_phrases    || lesson.keyPhrases    || [],
+  vocabulary:     lesson.vocabulary     || [],
+  exercises:      lesson.exercises      || [],
+});
 
 class CourseController {
   /**
@@ -145,12 +156,18 @@ class CourseController {
       });
 
       console.log(`🎉 Course ${courseId} generation complete!`);
-      
+
+      // Fire-and-forget: extract concept graph in background after course is saved.
+      // Does not block the SSE response — same pattern as other async side effects.
+      conceptExtractionService
+        .extractConceptsForCourse(courseId, courseData)
+        .catch(err => console.error('Concept extraction failed silently:', err.message));
+
       // Clear heartbeat interval
       if (heartbeatInterval) {
         clearInterval(heartbeatInterval);
       }
-      
+
       res.end();
 
     } catch (error) {
@@ -206,6 +223,11 @@ class CourseController {
       
       // Initialize progress (unlock first unit)
       await progressRepository.initializeCourseProgress(courseId, userId);
+
+      // Fire-and-forget: extract concept graph in background after course is saved.
+      conceptExtractionService
+        .extractConceptsForCourse(courseId, courseData)
+        .catch(err => console.error('Concept extraction failed silently:', err.message));
 
       console.log(`Course created successfully with ID: ${courseId}`);
 
@@ -390,7 +412,7 @@ class CourseController {
       const progress = await progressRepository.findSpecificLessonProgress(userId, courseId, unitId, lessonId);
 
       res.json(successResponse({
-        lesson,
+        lesson: normalizeLesson(lesson),
         progress: progress || null
       }, 'Lesson details retrieved successfully'));
     } catch (error) {
@@ -437,7 +459,7 @@ class CourseController {
       const progress = await progressRepository.findSpecificLessonProgress(userId, courseId, foundUnitId, lessonId);
 
       res.json(successResponse({
-        lesson: foundLesson,
+        lesson: normalizeLesson(foundLesson),
         unitId: foundUnitId,
         progress: progress || null
       }, 'Lesson details retrieved successfully'));

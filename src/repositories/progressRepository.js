@@ -149,15 +149,41 @@ class ProgressRepository {
   }
 
   /**
+   * Get recent completed lessons for a course (used by chat context)
+   */
+  async getRecentLessons(userId, courseId, limit = 5) {
+    const result = await db.query(
+      `SELECT cl.title, cl.lesson_type, lp.score, lp.completion_time
+       FROM lesson_progress lp
+       JOIN course_lessons cl ON lp.lesson_id = cl.id
+       WHERE lp.learner_id = $1 AND lp.course_id = $2 AND lp.is_completed = TRUE
+       ORDER BY lp.completion_time DESC NULLS LAST
+       LIMIT $3`,
+      [userId, courseId, limit]
+    );
+    return result.rows;
+  }
+
+  /**
    * Initialize course progress (unlock first unit and create stats)
    */
   async initializeCourseProgress(courseId, userId) {
-    // Unlock first unit
+    // Look up the actual database id of the first unit for this course
+    const firstUnitResult = await db.query(
+      `SELECT id FROM course_units WHERE course_id = $1 ORDER BY unit_id ASC LIMIT 1`,
+      [courseId]
+    );
+
+    if (firstUnitResult.rowCount === 0) return; // units not saved yet — skip
+
+    const firstUnitDbId = firstUnitResult.rows[0].id;
+
+    // Unlock first unit using its real database id
     await db.query(
       `INSERT INTO unit_progress (learner_id, course_id, unit_id, is_unlocked, is_completed)
-       VALUES ($1, $2, 1, TRUE, FALSE)
+       VALUES ($1, $2, $3, TRUE, FALSE)
        ON CONFLICT (learner_id, course_id, unit_id) DO NOTHING`,
-      [userId, courseId]
+      [userId, courseId, firstUnitDbId]
     );
 
     // Initialize user stats

@@ -44,6 +44,8 @@ Error Code Convention:
 - 9xxxx: AI Chatbot errors
 - 10xxxx: Contest errors
 - 11xxxx: User management errors (Admin)
+- 12xxxx: Knowledge graph errors
+- 13xxxx: A* recommendation errors
 */
 
 const ERRORS = {
@@ -159,7 +161,22 @@ const ERRORS = {
   USER_UPDATE_FAILED: new RequestError("Failed to update user", 110002, 500),
   USER_DELETE_FAILED: new RequestError("Failed to delete user", 110003, 500),
   PASSWORD_UPDATE_FAILED: new RequestError("Failed to update password", 110004, 500),
-  USER_COURSES_FETCH_FAILED: new RequestError("Failed to fetch user courses", 110005, 500)
+  USER_COURSES_FETCH_FAILED: new RequestError("Failed to fetch user courses", 110005, 500),
+
+  // Knowledge Graph Errors (12xxxx)
+  CONCEPT_EXTRACTION_FAILED: new RequestError("Failed to extract concepts from course", 120001, 500),
+  CONCEPT_GRAPH_NOT_FOUND: new RequestError("Knowledge graph not found for this course", 120002, 404),
+  CONCEPT_MASTERY_UPDATE_FAILED: new RequestError("Failed to update concept mastery", 120003, 500),
+  GRAPH_BUILD_FAILED: new RequestError("Failed to build concept graph", 120004, 500),
+  CONCEPT_NODES_SAVE_FAILED: new RequestError("Failed to save concept nodes", 120005, 500),
+  CONCEPT_EDGES_SAVE_FAILED: new RequestError("Failed to save concept edges", 120006, 500),
+
+  // A* Recommendation Errors (13xxxx)
+  RECOMMENDATION_FAILED: new RequestError("Failed to compute recommendations", 130001, 500),
+  NO_ACTIVE_COURSE_FOR_GRAPH: new RequestError("No active course found for this learner", 130002, 404),
+  RECOMMENDATION_NOT_FOUND: new RequestError("Recommendation not found", 130003, 404),
+  RECOMMENDATION_FOLLOW_FAILED: new RequestError("Failed to mark recommendation as followed", 130004, 500),
+  MASTERY_PROFILE_FETCH_FAILED: new RequestError("Failed to fetch mastery profile", 130005, 500)
 };
 
 export {
